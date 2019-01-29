@@ -44,19 +44,17 @@ directory=${PWD}/
 sample=`sed "${SLURM_ARRAY_TASK_ID}q;d" task_samples.txt`
 rawpath=${directory}raw_sequences/
 mappath=${directory}${sample}
-fastq=${rawpath}${sample}.fq.gz
-output=${mappath}${sample}
-trim=${sample}_trimmed.fq.gz
+fastq=${rawpath}${sample}.fastq.gz
+trim=${sample}_trimmed.fastq.gz
 BAM=${sample}_Aligned.sortedByCoord.out.bam
 
 #############
 # QC Report #
 #############
+# adjust threads
 
-cd ${rawpath}
 mkdir -p QC
 
-# adjust threads
 call="fastqc \
 --outdir QC \
 --format fastq \
@@ -69,11 +67,12 @@ eval $call
 ########
 # Trim #
 ########
+# remove the adapter contamination, polyA read through, and low quality tails
+# polyA file workaround: https://www.biostars.org/p/236515/
 
 mkdir ${mappath}
 cd ${mappath}
 
-### remove the adapter contamination, polyA read through, and low quality tails
 call="bbduk.sh \
 in=${fastq}
 out=${trim} \
@@ -93,11 +92,11 @@ eval $call
 #########
 # Align #
 #########
+# adjust threads and genome directory
 
-# adjust threads
 call="STAR \
 --runThreadN 8 \
---genomeDir /share/genomes/igenomes/Mus_musculus/Ensembl/GRCm38/BioCore/STAR-2.5.1b/RL100/ \
+--genomeDir /share/lasallelab/Ben/PEBBLES/tag-seq/data/GRCm38/star_100/ \
 --readFilesIn ${trim} \
 --outFilterType BySJout \
 --outFilterMultimapNmax 20 \
@@ -118,8 +117,8 @@ eval $call
 #########
 # Index #
 #########
-
 #Indexed bam files are necessary for many visualization and downstream analysis tools
+
 call="samtools \
 index \
 ${bamfile}"
@@ -127,7 +126,7 @@ ${bamfile}"
 echo $call
 eval $call
 
-#From this point any further analysis can be applied.
+# Time for R
 # https://ucdavis-bioinformatics-training.github.io/2018-June-RNA-Seq-Workshop/thursday/DE.html 
 
 ###################

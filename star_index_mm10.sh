@@ -2,7 +2,7 @@
 #
 #SBATCH --job-name=star_index
 #SBATCH --workdir /share/lasallelab/Ben/PEBBLES/tag-seq
-#SBATCH --ntasks=20 # Number of cores/threads
+#SBATCH --ntasks=30 # Number of cores/threads
 #SBATCH --mem=64000 # Ram in Mb
 #SBATCH --partition=production 
 #SBATCH --time=2-00:00:00
@@ -36,16 +36,16 @@ module load star/2.6.1d
 ###########################
 # Download Genome (FASTA) #
 ###########################
+# Must have un-placed/un-localized scaffolds, so use .dna.primary.assembly
+# Section 2.2.1 https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf
 
 mkdir -p data/GRCm38/sequence
 
 cd data/GRCm38/sequence/
 
-wget ftp://ftp.ensembl.org/pub/release-95/fasta/mus_musculus/dna/Mus_musculus.GRCm38.dna.chromosome.{1..19}.fa.gz
+wget ftp://ftp.ensembl.org/pub/release-95/fasta/mus_musculus/dna/Mus_musculus.GRCm38.dna.primary_assembly.fa.gz
 
-wget ftp://ftp.ensembl.org/pub/release-95/fasta/mus_musculus/dna/Mus_musculus.GRCm38.dna.chromosome.{MT,X,Y}.fa.gz
-
-gunzip -c Mus_musculus.GRCh38.dna.chromosome.* > GRCm38_r95.all.fa
+gunzip Mus_musculus.GRCm38.dna.primary_assembly.fa.gz
 
 cd ../../../
 
@@ -66,16 +66,16 @@ cd ../../../
 ####################
 # Build Star Index #
 ####################
-
-mkdir -p data/GRCm38/star_indices_overhang100
-
 # the splice-junction-data-base-overhang parameter should have a value of read length – 1
-call="star \
---runThreadN 20 \
+
+mkdir -p data/GRCm38/star_100/
+
+call="STAR \
+--runThreadN 30 \
 --runMode genomeGenerate \
---genomeDir data/GRCh38/star_indices_overhang100/ \
---genomeFastaFiles data/GRCh38/sequence/GRCm38_r95.all.fa \
---sjdbGTFfile data/GRCh38/annotation/Mus_musculus.GRCm38.95.gtf.gz \
+--genomeDir data/GRCm38/star_100/ \
+--genomeFastaFiles data/GRCm38/sequence/Mus_musculus.GRCm38.dna.primary_assembly.fa \
+--sjdbGTFfile data/GRCm38/annotation/Mus_musculus.GRCm38.95.gtf \
 --sjdbOverhang 99"
 
 echo $call

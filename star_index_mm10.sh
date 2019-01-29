@@ -5,7 +5,7 @@
 #SBATCH --ntasks=30 # Number of cores/threads
 #SBATCH --mem=64000 # Ram in Mb
 #SBATCH --partition=production 
-#SBATCH --time=0-02:00:00
+#SBATCH --time=0-01:00:00
 
 ##########################################################################################
 # Author: Ben Laufer

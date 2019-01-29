@@ -5,7 +5,7 @@
 #SBATCH --ntasks=8 # Number of cores/threads
 #SBATCH --mem=32000 # Ram in Mb
 #SBATCH --partition=production 
-#SBATCH --time=0-12:00:00
+#SBATCH --time=0-00:30:00
 
 ##########################################################################################
 # Author: Ben Laufer
@@ -76,7 +76,7 @@ cd ${mappath}
 call="bbduk.sh \
 in=${fastq}
 out=${trim} \
-ref=/data/resources/truseq_rna.fa.gz \
+ref=${directory}data/truseq_rna.fa.gz \
 literal=AAAAAAAAAAAAAAAAAA \
 k=13 \
 ktrim=r \
@@ -93,11 +93,13 @@ eval $call
 # Align #
 #########
 # adjust threads and genome directory
+# Use zcat command for fastq.gz https://www.biostars.org/p/243683/
 
 call="STAR \
 --runThreadN 8 \
 --genomeDir /share/lasallelab/Ben/PEBBLES/tag-seq/data/GRCm38/star_100/ \
 --readFilesIn ${trim} \
+--readFilesCommand zcat \
 --outFilterType BySJout \
 --outFilterMultimapNmax 20 \
 --alignSJoverhangMin 8 \
@@ -108,8 +110,8 @@ call="STAR \
 --alignIntronMax 1000000 \
 --alignMatesGapMax 1000000 \
 --outSAMattributes NH HI NM MD \
---outSAMtype BAM _SortedByCoordinate \
---outFileNamePrefix ${sample}"
+--outSAMtype BAM SortedByCoordinate \
+--outFileNamePrefix ${sample}_"
 
 echo $call
 eval $call
@@ -121,7 +123,7 @@ eval $call
 
 call="samtools \
 index \
-${bamfile}"
+${BAM}"
 
 echo $call
 eval $call

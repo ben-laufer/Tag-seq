@@ -94,6 +94,7 @@ eval $call
 #########
 # adjust threads and genome directory
 # Use zcat command for fastq.gz https://www.biostars.org/p/243683/
+# Use qauntMode to get GeneCounts for R https://www.biostars.org/p/218995/
 
 call="STAR \
 --runThreadN 8 \
@@ -111,7 +112,8 @@ call="STAR \
 --alignMatesGapMax 1000000 \
 --outSAMattributes NH HI NM MD \
 --outSAMtype BAM SortedByCoordinate \
---outFileNamePrefix ${sample}_"
+--outFileNamePrefix ${sample}_
+--quantMode GeneCounts"
 
 echo $call
 eval $call

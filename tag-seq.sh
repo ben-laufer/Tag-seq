@@ -74,7 +74,7 @@ mkdir ${mappath}
 cd ${mappath}
 
 call="bbduk.sh \
-in=${fastq}
+in=${fastq} \
 out=${trim} \
 ref=${directory}data/truseq_rna.fa.gz \
 literal=AAAAAAAAAAAAAAAAAA \
@@ -121,7 +121,7 @@ eval $call
 #########
 # Index #
 #########
-#Indexed bam files are necessary for many visualization and downstream analysis tools
+# Indexed bam files are necessary for many visualization and downstream analysis tools
 
 call="samtools \
 index \

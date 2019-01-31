@@ -84,7 +84,8 @@ useshortkmers=t \
 mink=5 \
 qtrim=r \
 trimq=10 \
-minlength=20"
+minlength=20 \
+stats=${sample}_stats"
 
 echo $call
 eval $call
@@ -112,7 +113,7 @@ call="STAR \
 --alignMatesGapMax 1000000 \
 --outSAMattributes NH HI NM MD \
 --outSAMtype BAM SortedByCoordinate \
---outFileNamePrefix ${sample}_
+--outFileNamePrefix ${sample}_ \
 --quantMode GeneCounts"
 
 echo $call

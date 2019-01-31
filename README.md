@@ -1,14 +1,14 @@
 # Tag-seq
 ### A 3’ Tag RNA-seq pipeline for the alignment of gene expression data
 
-The Tag-seq pipeline takes you from raw fastq files to gene counts for samples prepared using the QuantSeq 3' mRNA-Seq Library Prep Kit FWD for Illumina (Lexogen) and sequenced with single end reads. The scripts cover the indexing of the reference genome and gene annotations, trimming, alignment, extraction of gene counts, quality control. The gene count matrices can then be utilized for statistical analysis in R. 
+The Tag-seq pipeline takes you from raw fastq files to gene counts for samples prepared using the QuantSeq 3' mRNA-Seq Library Prep Kit FWD for Illumina (Lexogen) and sequenced with single end reads. The scripts cover the indexing of the reference genome and gene annotations, filtering, alignment, extraction of gene counts, quality control. The gene count matrices can then be utilized for statistical analysis in R. 
 
 ### Table of Contents
 
 1. [Installation](https://github.com/ben-laufer/Tag-seq#installation)
 2. [Indexing](https://github.com/ben-laufer/Tag-seq#indexing)
 3. [Single End (SE) Sequencing](https://github.com/ben-laufer/Tag-seq#single-end-se-sequencing)
-   1. [Trimming](https://github.com/ben-laufer/CpG_Me#trimming)
+   1. [Filtering](https://github.com/ben-laufer/CpG_Me#filtering)
    2. [Alignment](https://github.com/ben-laufer/CpG_Me#alignment)
 4. [Quality Control](https://github.com/ben-laufer/Tag-seq#qaulity-control)
 4. [Statistical Analysis](https://github.com/ben-laufer/Tag-seq#statistical-analysis)
@@ -73,13 +73,13 @@ The script can be executed using the following command from the working director
 
 The `--array` argument represents which samples in the list to run. Here we are running samples 1 to 87. You could run select samples using the following format --array=2,4-12
 
-### Trimming
+### Filtering
 
-Trimming is performed to remove adapter contamination, polyA tail read through, and low quality tails. The random priming approach also biases the first 12 bp of sequence; however, this does not need to be manually trimmed if using a local aligner like STAR (read more [here](https://dnatech.genomecenter.ucdavis.edu/tag-seq-gene-expression-profiling/)).
+Filtering is performed to remove adapter contamination, polyA tail read through, and low quality tails. The random priming approach also biases the first 12 bp of sequence; however, this does not need to be manually trimmed if using a local aligner like STAR (read more [here](https://dnatech.genomecenter.ucdavis.edu/tag-seq-gene-expression-profiling/)).
 
 ### Alignment
 
-After trimming, alignment and the generation of gene counts are performed in a single step that is then followed by indexing of the BAM files.
+After filtering, alignment and the generation of gene counts are performed in a single step that is then followed by indexing of the BAM files.
 
 ## Quality Control
 

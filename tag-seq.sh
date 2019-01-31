@@ -64,9 +64,9 @@ ${fastq}"
 echo $call
 eval $call
 
-########
-# Trim #
-########
+##########
+# Filter #
+##########
 # polyA file workaround: https://www.biostars.org/p/236515/
 # Added stats for multiQC: https://multiqc.info/docs/#bbmap
 

@@ -19,8 +19,12 @@ setwd("/Users/blaufer/Box Sync/PEBBLES")
 meta <- read.csv("sample_info.csv")
 files <- list.files(path = glue::glue(getwd(), "/GeneCounts"), pattern = "*.ReadsPerGene.out.tab")
 
-
 # Format count matrix -----------------------------------------------------
 
-name <- gsub( "(?:[^_]+_){4}([^_ ]+)*$","", list.files(glue::glue(getwd(), "/GeneCounts"), pattern = "*.ReadsPerGene.out.tab"))
+#name <- gsub( "(?:[^_]+_){4}([^_ ]+)*$","", files)
+
+name <- str_split_fixed(files, "_", n =4) %>%
+  as.tibble() %>%
+  unite(Name, c(V1:V3), sep = "_") %>%
+  select(Name)
 

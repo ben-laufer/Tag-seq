@@ -46,7 +46,7 @@ For convenience the truseq_rna.fa.gz from BBMap is provided in this repository.
 
 ## Single End (SE) Sequencing
 
-The primary workflow is `tag-seq.sh`, which is a modified version of the [Lexogen example]{ https://www.lexogen.com/quantseq-data-analysis/}. The modifications are two-fold:
+The primary workflow is `tag-seq.sh`, which is a modified version of the [Lexogen example](https://www.lexogen.com/quantseq-data-analysis/). The modifications are two-fold:
 1.  The script is optimized to run on a HPCC (High-Performance Computing Cluster) with the SLURM workload manager and offers more automation of file handling.
 2. Additional files to aid with quality control and statistical analysis are also generated.
 
@@ -75,7 +75,7 @@ The `--array` argument represents which samples in the list to run. Here we are 
 
 ### Trimming
 
-Trimming is performed to remove adapter contamination, polyA tail read through, and low quality tails. The random priming approach also biases the first 12 bp of sequence; however, this does not need to be manually trimmed if using a local aligner like STAR (read more [here]{https://dnatech.genomecenter.ucdavis.edu/tag-seq-gene-expression-profiling/}).
+Trimming is performed to remove adapter contamination, polyA tail read through, and low quality tails. The random priming approach also biases the first 12 bp of sequence; however, this does not need to be manually trimmed if using a local aligner like STAR (read more [here](https://dnatech.genomecenter.ucdavis.edu/tag-seq-gene-expression-profiling/)).
 
 ### Alignment
 
@@ -87,7 +87,7 @@ The `tag-seq-QC.sh` script is the final step in the process, which a generates a
 
 ## Statistical Analysis
 
-While the above scripts are stable, the `tag-seq.R` script is a work in progress intended for the statistical analysis of the gene count matrices. It utilizes [Limma-Voom]{https://ucdavis-bioinformatics-training.github.io/2018-June-RNA-Seq-Workshop/thursday/DE.html} and [biobroom]{https://www.bioconductor.org/packages/release/bioc/vignettes/biobroom/inst/doc/biobroom_vignette.html} for the analysis of differential gene expression.
+While the above scripts are stable, the `tag-seq.R` script is a work in progress intended for the statistical analysis of the gene count matrices. It utilizes [Limma-Voom](https://ucdavis-bioinformatics-training.github.io/2018-June-RNA-Seq-Workshop/thursday/DE.html) and [biobroom](https://www.bioconductor.org/packages/release/bioc/vignettes/biobroom/inst/doc/biobroom_vignette.html) for the analysis of differential gene expression.
 
 ## Citation
 

@@ -30,7 +30,7 @@ echo "Allocated memory: " $MEM
 # Load Modules #
 ################
 
-module load multiqc/1.6
+module load multiqc/1.7
 
 ###########
 # MultiQC #

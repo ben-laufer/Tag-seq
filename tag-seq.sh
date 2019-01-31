@@ -67,8 +67,8 @@ eval $call
 ########
 # Trim #
 ########
-# remove the adapter contamination, polyA read through, and low quality tails
 # polyA file workaround: https://www.biostars.org/p/236515/
+# Added stats for multiQC: https://multiqc.info/docs/#bbmap
 
 mkdir ${mappath}
 cd ${mappath}
@@ -130,9 +130,6 @@ ${BAM}"
 
 echo $call
 eval $call
-
-# Time for R
-# https://ucdavis-bioinformatics-training.github.io/2018-June-RNA-Seq-Workshop/thursday/DE.html 
 
 ###################
 # Run Information #

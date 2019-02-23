@@ -14,8 +14,8 @@ options(scipen=999)
 
 if (!requireNamespace("BiocManager", quietly=TRUE))
   install.packages("BiocManager")
-#BiocManager::install(c("edgeR", "biobroom", "tidyverse", "stephenturner/annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx"))
-stopifnot(suppressMessages(sapply(c("edgeR", "biobroom", "tidyverse", "annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx"), require, character.only = TRUE)))
+#BiocManager::install(c("edgeR", "biobroom", "tidyverse", "stephenturner/annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "rstudio/gt", "plyr"))
+stopifnot(suppressMessages(sapply(c("edgeR", "biobroom", "tidyverse", "annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "gt", "plyr"), require, character.only = TRUE)))
 
 # Count Matrix ------------------------------------------------------------
 
@@ -129,7 +129,31 @@ DEGs <- fit %>%
   dplyr::select(symbol, logFC, P.Value, adj.P.Val, ensembl, description) %>%
   dplyr::filter(P.Value < 0.05)
   
-DEGs
+# HTML report -------------------------------------------------------------
+
+DEGs %>%
+  dplyr::rename(Gene = symbol,
+                "p-value" = P.Value,
+                "q-value" = adj.P.Val,
+                Description = description) %>% 
+  dplyr::select(-ensembl) %>%
+  dplyr::mutate(Description = purrr::map_chr(strsplit(DEGs$description, split='[', fixed=TRUE),function(x) (x[1]))) %>% 
+  gt() %>%
+  tab_header(
+    title = glue::glue("{nrow(DEGs)} Differentially Expressed Genes"),
+    subtitle = glue::glue("{round(sum(DEGs$logFC > 0) / nrow(DEGs), digits = 2)*100}% up-regulated, \\
+                          {round(sum(DEGs$logFC < 0) / nrow(DEGs), digits = 2)*100}% down-regulated")
+    ) %>% 
+  fmt_number(
+    columns = vars("logFC"),
+    decimals = 2
+  ) %>% 
+  fmt_scientific(
+    columns = vars("p-value", "q-value"),
+    decimals = 2
+  ) %>%
+  as_raw_html(inline_css = TRUE) %>%
+  write("DEGs.html") 
 
 # Plots -------------------------------------------------------------------
 
@@ -137,14 +161,30 @@ DEGs
 
 heatMatrix <- logCPM$E[which(rownames(logCPM$E) %in% DEGs$ensembl),]
 
+# https://stackoverflow.com/questions/8197559/emulate-ggplot2-default-color-palette
+gg_color_hue <- function(n = n){
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
+gg_color <- c(gg_color_hue(length(levels(as.factor(designMatrix$Treatment)))))
+
+ColSideColors <- plyr::mapvalues(as.factor(designMatrix$Treatment),
+                                 from = levels(as.factor(designMatrix$Treatment)),
+                                 to = unique(gg_color)) 
+
 pdf("heatmap.pdf", height = 8.5, width = 11)
 
 heatmap.2(heatMatrix,
           scale = "row",
-          labCol = designMatrix$Treatment, 
+          labCol = designMatrix$Treatment,
+          labRow = NA,
           col = rev(brewer.pal(11, name = "RdBu")),
           trace = "none",
-          dendrogram = "column")
+          main = glue::glue("{nrow(DEGs)} Differentially Expressed Genes"),
+          Rowv= as.dendrogram(hclust(dist(heatMatrix))),
+          Colv = T,
+          ColSideColors = as.character(ColSideColors))
 
 dev.off()
 

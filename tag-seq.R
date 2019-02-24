@@ -34,6 +34,7 @@ sampleNames <- list.files(path = glue::glue(getwd(), "/GeneCounts"), pattern = "
   dplyr::select(Name) %>% 
   purrr::flatten_chr()
 
+# Could alternatively use edgeR::readDGE() but that calls to the slower read.delim()
 ensemblIDs <- list.files(path = glue::glue(getwd(), "/GeneCounts"), pattern = "*.ReadsPerGene.out.tab", full.names = T)[1] %>% 
   data.table::fread(select = 1) %>%
   purrr::flatten_chr()
@@ -44,6 +45,7 @@ countMatrix <- list.files(path = glue::glue(getwd(), "/GeneCounts"), pattern = "
   magrittr::set_rownames(ensemblIDs)
   
 countMatrix <- countMatrix[-c(1:4),]
+
 
 # Design Matrix -----------------------------------------------------------
 
@@ -82,6 +84,26 @@ countMatrix <- countMatrix %>%
   DGEList() %>%
   calcNormFactors()
 
+# Raw density of log-CPM values
+pdf("density_plot.pdf", height = 8.5, width = 11)
+L <- mean(countMatrix$samples$lib.size) * 1e-6
+M <- median(countMatrix$samples$lib.size) * 1e-6
+c(L, M)
+lcpm <- cpm(countMatrix, log=TRUE)
+lcpm.cutoff <- log2(10/M + 2/L)
+nsamples <- ncol(countMatrix)
+col <- brewer.pal(nsamples, "Paired")
+par(mfrow=c(1,2))
+plot(density(lcpm[,1]), col=col[1], lwd=2, las=2, main="", xlab="")
+title(main="A. Raw data", xlab="Log-cpm")
+abline(v=lcpm.cutoff, lty=3)
+for (i in 2:nsamples){
+  den <- density(lcpm[,i])
+  lines(den$x, den$y, col=col[i], lwd=2)
+}
+legend("topright", designMatrix$Name, text.col=col, bty="n", cex = 0.5)
+
+
 # Filter genes with low expression
 
 # # Automated method from ref 3
@@ -89,16 +111,29 @@ countMatrix <- countMatrix %>%
 # countMatrix <- countMatrix[keep.exprs,, keep.lib.sizes=FALSE]
 # dim(countMatrix)
 
-# Blythe method
+# Blythe method for filtering
 cutoff <- 1
 drop <- which(apply(cpm(countMatrix), 1, max) < cutoff)
 countMatrix <- countMatrix[-drop,]
 dim(countMatrix)
+countMatrix$samples$lib.size <- colSums(countMatrix$counts) # Reset library size after filtering
 
 # Reorder design matrix 
 samples.idx <- pmatch(designMatrix$Name, rownames(countMatrix$samples))
 designMatrix <- designMatrix[order(samples.idx),]
 stopifnot(rownames(countMatrix$samples) == designMatrix$Name)
+
+# Filtered density plot of log-CPM values 
+lcpm <- cpm(countMatrix, log=TRUE)
+plot(density(lcpm[,1]), col=col[1], lwd=2, las=2, main="", xlab="")
+title(main="B. Filtered data", xlab="Log-cpm")
+abline(v=lcpm.cutoff, lty=3)
+for (i in 2:nsamples){
+  den <- density(lcpm[,i])
+  lines(den$x, den$y, col=col[i], lwd=2)
+}
+legend("topright", designMatrix$Name, text.col=col, bty="n", cex = 0.5)
+dev.off()
 
 # MDS of all interactions
 group <- interaction(designMatrix$Treatment, designMatrix$Sex)

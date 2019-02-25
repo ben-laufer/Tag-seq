@@ -73,6 +73,7 @@ designMatrix <- designMatrix[order(samples.idx),]
 
 # Preprocessing -----------------------------------------------------------
 
+# Select sample subset
 countMatrix <- countMatrix %>%
   dplyr::select(contains("P"))
 
@@ -85,23 +86,25 @@ countMatrix <- countMatrix %>%
   calcNormFactors()
 
 # Raw density of log-CPM values
-pdf("density_plot.pdf", height = 8.5, width = 11)
+
 L <- mean(countMatrix$samples$lib.size) * 1e-6
 M <- median(countMatrix$samples$lib.size) * 1e-6
-c(L, M)
-lcpm <- cpm(countMatrix, log=TRUE)
-lcpm.cutoff <- log2(10/M + 2/L)
+
+logCPM <- cpm(countMatrix, log = TRUE)
+logCPM.cutoff <- log2(10/M + 2/L)
 nsamples <- ncol(countMatrix)
 col <- brewer.pal(nsamples, "Paired")
-par(mfrow=c(1,2))
-plot(density(lcpm[,1]), col=col[1], lwd=2, las=2, main="", xlab="")
-title(main="A. Raw data", xlab="Log-cpm")
-abline(v=lcpm.cutoff, lty=3)
+
+pdf("density_plot.pdf", height = 8.5, width = 11)
+par(mfrow = c(1,2))
+plot(density(logCPM[,1]), col = col[1], lwd = 2, las = 2, main = "", xlab = "")
+title(main = "A. Raw data", xlab = "Log-cpm")
+abline(v = logCPM.cutoff, lty=3)
 for (i in 2:nsamples){
-  den <- density(lcpm[,i])
-  lines(den$x, den$y, col=col[i], lwd=2)
+  den <- density(logCPM[,i])
+  lines(den$x, den$y, col = col[i], lwd = 2)
 }
-legend("topright", designMatrix$Name, text.col=col, bty="n", cex = 0.5)
+legend("topright", designMatrix$Name, text.col = col, bty = "n", cex = 0.5)
 
 
 # Filter genes with low expression
@@ -124,15 +127,15 @@ designMatrix <- designMatrix[order(samples.idx),]
 stopifnot(rownames(countMatrix$samples) == designMatrix$Name)
 
 # Filtered density plot of log-CPM values 
-lcpm <- cpm(countMatrix, log=TRUE)
-plot(density(lcpm[,1]), col=col[1], lwd=2, las=2, main="", xlab="")
+logCPM <- cpm(countMatrix, log = TRUE)
+plot(density(logCPM[,1]), col = col[1], lwd = 2, las =2 , main = "", xlab = "")
 title(main="B. Filtered data", xlab="Log-cpm")
-abline(v=lcpm.cutoff, lty=3)
+abline(v=logCPM.cutoff, lty=3)
 for (i in 2:nsamples){
-  den <- density(lcpm[,i])
-  lines(den$x, den$y, col=col[i], lwd=2)
+  den <- density(logCPM[,i])
+  lines(den$x, den$y, col = col[i], lwd = 2)
 }
-legend("topright", designMatrix$Name, text.col=col, bty="n", cex = 0.5)
+legend("topright", designMatrix$Name, text.col = col, bty = "n", cex = 0.5)
 dev.off()
 
 # MDS of all interactions
@@ -146,11 +149,18 @@ plotMDS(countMatrix, col = (as.numeric(designMatrix$Treatment == "Control")+1))
 
 #mm <- model.matrix(~0 + designMatrix$Treatment + designMatrix$Sex) # Force zero intercept?
 mm <- model.matrix(~designMatrix$Treatment + designMatrix$Sex)
-logCPM <- voom(countMatrix, mm, plot = T)
+voomLogCPM <- voom(countMatrix, mm, plot = T)
+
+# Boxplots of logCPM values before and after normalization
+par(mfrow=c(1,2))
+boxplot(logCPM, las=2, col=col, main="")
+title(main="A. Unnormalised data",ylab="Log-cpm")
+boxplot(voomLogCPM$E, las=2, col=col, main="")
+title(main="B. Normalised data",ylab="Log-cpm")
 
 # Fitting linear models in limma ------------------------------------------
 
-fit <- lmFit(logCPM, mm)
+fit <- lmFit(voomLogCPM, mm)
 head(coef(fit))
 
 DEGs <- fit %>%
@@ -194,7 +204,7 @@ DEGs %>%
 
 # Heatmap
 
-heatMatrix <- logCPM$E[which(rownames(logCPM$E) %in% DEGs$ensembl),]
+heatMatrix <- voomLogCPM$E[which(rownames(voomLogCPM$E) %in% DEGs$ensembl),]
 
 # https://stackoverflow.com/questions/8197559/emulate-ggplot2-default-color-palette
 gg_color_hue <- function(n = n){

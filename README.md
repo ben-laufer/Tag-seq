@@ -53,7 +53,8 @@ The primary workflow is `tag-seq.sh`, which is a modified version of the [Lexoge
 This pipeline requires a specific directory structure:
 
 1.	Create a parent directory for the project
-2.	Within that parent project directory, add a text file called “task_samples.txt”, where each new line contains the entire sample name exactly as it appears on the fastq read pair files, aside from the file extension (“.fastq.gz”). Also, if you’re using excel or a windows desktop, you will need to change the linebreaks from windows to unix, which can be done using BBEdit.
+2.	Within that parent project directory, add a text file called “task_samples.txt”, where each new line contains the entire sample name exactly as it appears on the fastq read pair files, aside from the file extension (“.fastq.gz”). Also, if you’re using excel or a windows desktop, you will need to change the linebreaks from windows to unix, which can be done using BBEdit or:
+`awk '{ sub("\r$", ""); print }' task_samples_windows.txt > task_samples.txt`
 3.	Within that parent directory create a folder called “raw_sequences” that contains all the raw fastq files (.fastq.gz)
 
 Overall, the directory tree structure should be the following:

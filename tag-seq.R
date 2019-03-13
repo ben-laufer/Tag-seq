@@ -7,7 +7,7 @@
 
 # Load packages -----------------------------------------------------------
 
-setwd("/Users/blaufer/Box Sync/PEBBLES")
+setwd("/Users/blaufer/Desktop/PEBBLES/tag-seq")
 
 rm(list=ls())
 options(scipen=999)
@@ -62,6 +62,10 @@ designMatrix$Treatment <- as.character(designMatrix$Treatment)
 designMatrix$Treatment[designMatrix$Treatment  == "Control"] <- "0"
 designMatrix$Treatment <- as.numeric(designMatrix$Treatment)
 
+# Add litter
+designMatrix$Litter <- str_split_fixed(designMatrix$Name, "_", n =3)[,1] %>%
+  as.factor()
+
 # # Recode sex
 # designMatrix$Sex <- as.character(designMatrix$Sex)
 # designMatrix$Sex[designMatrix$Sex  == "F"] <- "0"
@@ -75,10 +79,10 @@ designMatrix <- designMatrix[order(samples.idx),]
 
 # Select sample subset
 countMatrix <- countMatrix %>%
-  dplyr::select(contains("P"))
+  dplyr::select(contains("P")) #B
 
 designMatrix <- designMatrix %>%
-  dplyr::filter(Tissue == "Placenta")
+  dplyr::filter(Tissue == "Placenta") #Brain
 
 # Calculate normalization factors
 countMatrix <- countMatrix %>%
@@ -109,17 +113,17 @@ legend("topright", designMatrix$Name, text.col = col, bty = "n", cex = 0.5)
 
 # Filter genes with low expression
 
-# # Automated method from ref 3
-# keep.exprs <- filterByExpr(countMatrix, group = designMatrix$Treatment, lib.size = countMatrix$samples$lib.size)
-# countMatrix <- countMatrix[keep.exprs,, keep.lib.sizes=FALSE]
-# dim(countMatrix)
-
-# Blythe method for filtering
-cutoff <- 1
-drop <- which(apply(cpm(countMatrix), 1, max) < cutoff)
-countMatrix <- countMatrix[-drop,]
+# Automated method from ref 3
+keep.exprs <- filterByExpr(countMatrix, group = designMatrix$Treatment, lib.size = countMatrix$samples$lib.size)
+countMatrix <- countMatrix[keep.exprs,, keep.lib.sizes=FALSE]
 dim(countMatrix)
-countMatrix$samples$lib.size <- colSums(countMatrix$counts) # Reset library size after filtering
+
+# # Blythe method for filtering
+# cutoff <- 1
+# drop <- which(apply(cpm(countMatrix), 1, max) < cutoff)
+# countMatrix <- countMatrix[-drop,]
+# dim(countMatrix)
+# countMatrix$samples$lib.size <- colSums(countMatrix$counts) # Reset library size after filtering
 
 # Reorder design matrix 
 samples.idx <- pmatch(designMatrix$Name, rownames(countMatrix$samples))
@@ -148,7 +152,7 @@ plotMDS(countMatrix, col = (as.numeric(designMatrix$Treatment == "Control")+1))
 # Voom transformation and calculation of variance weights -----------------
 
 #mm <- model.matrix(~0 + designMatrix$Treatment + designMatrix$Sex) # Force zero intercept?
-mm <- model.matrix(~designMatrix$Treatment + designMatrix$Sex)
+mm <- model.matrix(~designMatrix$Treatment + designMatrix$Sex +designMatrix$Litter)
 voomLogCPM <- voom(countMatrix, mm, plot = T)
 
 # Boxplots of logCPM values before and after normalization

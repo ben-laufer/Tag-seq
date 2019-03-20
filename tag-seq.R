@@ -57,10 +57,10 @@ designMatrix$Name <- gsub("-", "_", designMatrix$Name)
 designMatrix$Name <- gsub(" ", "_", designMatrix$Name)
 designMatrix$Name <- gsub("\n", "", designMatrix$Name)
 
-# Treatment as numeric
+# Treatment as a categorical (factor) since continous (numeric) assumes a linear response and PCB response is non-monotonic
 designMatrix$Treatment <- as.character(designMatrix$Treatment)
 designMatrix$Treatment[designMatrix$Treatment  == "Control"] <- "0"
-designMatrix$Treatment <- as.numeric(designMatrix$Treatment)
+designMatrix$Treatment <- as.factor(designMatrix$Treatment)
 
 # Add litter
 designMatrix$Litter <- str_split_fixed(designMatrix$Name, "_", n =3)[,1] %>%
@@ -123,7 +123,7 @@ dim(countMatrix)
 # drop <- which(apply(cpm(countMatrix), 1, max) < cutoff)
 # countMatrix <- countMatrix[-drop,]
 # dim(countMatrix)
-# countMatrix$samples$lib.size <- colSums(countMatrix$counts) # Reset library size after filtering
+# countMatrix$samples$lib.size <- colSums(countMatrix$counts) # Reset library size after filtering? Recalculate normalization factors afterwards
 
 # Reorder design matrix 
 samples.idx <- pmatch(designMatrix$Name, rownames(countMatrix$samples))
@@ -146,14 +146,22 @@ dev.off()
 group <- interaction(designMatrix$Treatment, designMatrix$Sex)
 plotMDS(countMatrix, col = as.numeric(group))
 
+# Average over litter for MDS plot
+
 # MDS of treatments simplified
 plotMDS(countMatrix, col = (as.numeric(designMatrix$Treatment == "Control")+1))
 
 # Voom transformation and calculation of variance weights -----------------
 
-#mm <- model.matrix(~0 + designMatrix$Treatment + designMatrix$Sex) # Force zero intercept?
-mm <- model.matrix(~designMatrix$Treatment + designMatrix$Sex +designMatrix$Litter)
+#mm <- model.matrix(~0 + designMatrix$Treatment + designMatrix$Sex) # Force zero intercept? No!
+mm <- model.matrix(~Treatment + Sex, data = designMatrix)
 voomLogCPM <- voom(countMatrix, mm, plot = T)
+
+# Make litter random effect
+correlations <- duplicateCorrelation(voomLogCPM, mm, block = designMatrix$Litter)
+
+# Intraclass correlation within litters
+correlations <- correlations$consensus.correlation
 
 # Boxplots of logCPM values before and after normalization
 par(mfrow=c(1,2))
@@ -164,11 +172,17 @@ title(main="B. Normalised data",ylab="Log-cpm")
 
 # Fitting linear models in limma ------------------------------------------
 
-fit <- lmFit(voomLogCPM, mm)
+# Wieght standard errors of log fold changes by within litter correlation 
+fit <- lmFit(voomLogCPM, mm, correlation = correlations, block = designMatrix$Litter)
 head(coef(fit))
 
+# Save normalized expression values for WGCNA
+voomLogCPM$E %>%
+  write.xlsx("voomLogCPMforWGCNA.xlsx")
+
+# Create DEG tibble
 DEGs <- fit %>%
-  contrasts.fit(coef = 2) %>%
+  contrasts.fit(coef = 2) %>% # Change for different models (2,3,4)
   eBayes() %>%
   topTable(sort.by = "P", n = Inf) %>%
   rownames_to_column() %>% 

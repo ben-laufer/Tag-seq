@@ -88,12 +88,12 @@ The `tag-seq-QC.sh` script is the final step in the process, which a generates a
 
 ## Statistical Analysis
 
-While the above scripts are stable, the `tag-seq.R` script is a work in progress intended for the statistical analysis of the gene count matrices. It utilizes [Limma-Voom](https://ucdavis-bioinformatics-training.github.io/2018-June-RNA-Seq-Workshop/thursday/DE.html) and [biobroom](https://www.bioconductor.org/packages/release/bioc/vignettes/biobroom/inst/doc/biobroom_vignette.html) for the analysis of differential gene expression.
+The `tag-seq.R` script is intended for the statistical analysis of the gene count matrices with the goal of identifying differentially expressed genes. It utilizes Limma-Voom and integrates two tutorials [1](https://ucdavis-bioinformatics-training.github.io/2018-June-RNA-Seq-Workshop/thursday/DE.html) and [2](https://www.bioconductor.org/packages/devel/workflows/vignettes/RNAseq123/inst/doc/limmaWorkflow.html). The script also offers additional custom functions related to statistical analysis, annotation, and data visualization. 
 
 ## Citation
 
 If you use **Tag-seq** in published research please cite this repository.
 
 ## Acknowledgements
-I would like to thank [Matt Settles](https://github.com/msettles) from the [UC Davis Bioinformatics Core](https://github.com/ucdavis-bioinformatics) for [examples of tidy code](https://github.com/ucdavis-bioinformatics-training/A-Primer-on-Using-the-Bioinformatics-Core-Administrated-Servers-and-Cluster-s-/tree/master/examples). I would also like to thank Blythe Durbin-Johnson for statistical consulting and Annie Vogel Ciernia for invaluable discussions related to the bioinformatic and statistical approaches utilized in this repository. Finally, I would like to thank [Ian Korf](https://github.com/KorfLab) for invaluable discussions related to the bioinformatic approaches utilized in this repository. 
 
+I would like to thank [Matt Settles](https://github.com/msettles) from the [UC Davis Bioinformatics Core](https://github.com/ucdavis-bioinformatics) for [examples of tidy code](https://github.com/ucdavis-bioinformatics-training/A-Primer-on-Using-the-Bioinformatics-Core-Administrated-Servers-and-Cluster-s-/tree/master/examples) and introducing me to the tidyverse. I would also like to thank Blythe Durbin-Johnson for statistical consulting and Annie Vogel Ciernia for invaluable discussions related to the bioinformatic and statistical approaches utilized in this repository. Finally, I would like to thank [Ian Korf](https://github.com/KorfLab) for discussions related to some of the bioinformatic approaches utilized in this repository. 

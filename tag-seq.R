@@ -14,8 +14,9 @@ options(scipen=999)
 
 if (!requireNamespace("BiocManager", quietly=TRUE))
   install.packages("BiocManager")
-#BiocManager::install(c("edgeR", "biobroom", "tidyverse", "stephenturner/annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "rstudio/gt", "plyr"))
-stopifnot(suppressMessages(sapply(c("edgeR", "biobroom", "tidyverse", "annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "gt", "plyr"), require, character.only = TRUE)))
+#BiocManager::install(c("edgeR", "tidyverse", "stephenturner/annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "rstudio/gt", "plyr", "glue", "Glimma"))
+stopifnot(suppressMessages(sapply(c("edgeR", "tidyverse", "annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "gt", "plyr", "glue", "Glimma"),
+                                  require, character.only = TRUE)))
 
 # Count Matrix ------------------------------------------------------------
 
@@ -45,7 +46,6 @@ countMatrix <- list.files(path = glue::glue(getwd(), "/GeneCounts"), pattern = "
   magrittr::set_rownames(ensemblIDs)
   
 countMatrix <- countMatrix[-c(1:4),]
-
 
 # Design Matrix -----------------------------------------------------------
 
@@ -84,10 +84,21 @@ countMatrix <- countMatrix %>%
 designMatrix <- designMatrix %>%
   dplyr::filter(Tissue == "Placenta") #Brain
 
-# Calculate normalization factors
+# Create DGE list and calculate normalization factors
 countMatrix <- countMatrix %>%
   DGEList() %>%
   calcNormFactors()
+
+# Reorder design matrix 
+samples.idx <- pmatch(designMatrix$Name, rownames(countMatrix$samples))
+designMatrix <- designMatrix[order(samples.idx),]
+stopifnot(rownames(countMatrix$samples) == designMatrix$Name)
+
+# Add sample info from design matrix to DGE list
+countMatrix$samples$group <- designMatrix$Treatment
+countMatrix$samples$Sex <- designMatrix$Sex
+countMatrix$samples$Litter <- designMatrix$Litter
+countMatrix$samples$Tissue <- designMatrix$Tissue
 
 # Raw density of log-CPM values
 
@@ -101,40 +112,33 @@ col <- brewer.pal(nsamples, "Paired")
 
 pdf("density_plot.pdf", height = 8.5, width = 11)
 par(mfrow = c(1,2))
+
 plot(density(logCPM[,1]), col = col[1], lwd = 2, las = 2, main = "", xlab = "")
 title(main = "A. Raw data", xlab = "Log-cpm")
-abline(v = logCPM.cutoff, lty=3)
+abline(v = logCPM.cutoff, lty = 3)
 for (i in 2:nsamples){
   den <- density(logCPM[,i])
   lines(den$x, den$y, col = col[i], lwd = 2)
 }
 legend("topright", designMatrix$Name, text.col = col, bty = "n", cex = 0.5)
 
-
 # Filter genes with low expression
 
-# Automated method from ref 3
-keep.exprs <- filterByExpr(countMatrix, group = designMatrix$Treatment, lib.size = countMatrix$samples$lib.size)
-countMatrix <- countMatrix[keep.exprs,, keep.lib.sizes=FALSE]
-dim(countMatrix)
+rawCount <- dim(countMatrix)
 
-# # Blythe method for filtering
-# cutoff <- 1
-# drop <- which(apply(cpm(countMatrix), 1, max) < cutoff)
-# countMatrix <- countMatrix[-drop,]
-# dim(countMatrix)
-# countMatrix$samples$lib.size <- colSums(countMatrix$counts) # Reset library size after filtering? Recalculate normalization factors afterwards
+keep.exprs <- filterByExpr(countMatrix, group = countMatrix$samples$group, lib.size = countMatrix$samples$lib.size)
+countMatrix <- countMatrix[keep.exprs,, keep.lib.sizes = FALSE] %>% calcNormFactors() 
 
-# Reorder design matrix 
-samples.idx <- pmatch(designMatrix$Name, rownames(countMatrix$samples))
-designMatrix <- designMatrix[order(samples.idx),]
-stopifnot(rownames(countMatrix$samples) == designMatrix$Name)
+filterCount <- dim(countMatrix)
+
+glue::glue("{100 - round((filterCount[1]/rawCount[1])*100)}% of genes were filtered from {rawCount[2]} samples, \\
+           where there were {rawCount[1]} genes before filtering and {filterCount[1]} genes after filtering")
 
 # Filtered density plot of log-CPM values 
 logCPM <- cpm(countMatrix, log = TRUE)
 plot(density(logCPM[,1]), col = col[1], lwd = 2, las =2 , main = "", xlab = "")
-title(main="B. Filtered data", xlab="Log-cpm")
-abline(v=logCPM.cutoff, lty=3)
+title(main = "B. Filtered data", xlab = "Log-cpm")
+abline(v = logCPM.cutoff, lty = 3)
 for (i in 2:nsamples){
   den <- density(logCPM[,i])
   lines(den$x, den$y, col = col[i], lwd = 2)
@@ -142,33 +146,53 @@ for (i in 2:nsamples){
 legend("topright", designMatrix$Name, text.col = col, bty = "n", cex = 0.5)
 dev.off()
 
-# MDS of all interactions
-group <- interaction(designMatrix$Treatment, designMatrix$Sex)
-plotMDS(countMatrix, col = as.numeric(group))
+# Interactive MDS plot
+Glimma::glMDSPlot(countMatrix,
+                  groups = designMatrix,
+                  path = getwd(),
+                  folder = "interactiveMDS",
+                  html = "MDS-Plot",
+                  launch = TRUE)
 
-# Average over litter for MDS plot
+# # MDS of all interactions
+# group <- interaction(designMatrix$Treatment, designMatrix$Sex)
+# plotMDS(countMatrix, col = as.numeric(group))
 
 # MDS of treatments simplified
-plotMDS(countMatrix, col = (as.numeric(designMatrix$Treatment == "Control")+1))
+pdf("treatmentMDS.pdf", height = 8.5, width = 11)
+plotMDS(countMatrix,
+        col = (as.numeric(countMatrix$samples$group)),
+        main = "Treatment MDS")
+dev.off()
 
 # Voom transformation and calculation of variance weights -----------------
 
+# Create model matrix
 #mm <- model.matrix(~0 + designMatrix$Treatment + designMatrix$Sex) # Force zero intercept? No!
 mm <- model.matrix(~Treatment + Sex, data = designMatrix)
-voomLogCPM <- voom(countMatrix, mm, plot = T)
 
-# Make litter random effect
+# Voom transformation
+pdf("voom_mean-variance_trend.pdf", height = 8.5, width = 11)
+voomLogCPM <- voom(countMatrix, mm, plot = T)
+dev.off()
+
+# Make litter a random effect
 correlations <- duplicateCorrelation(voomLogCPM, mm, block = designMatrix$Litter)
 
-# Intraclass correlation within litters
+# Extract intraclass correlation within litters
 correlations <- correlations$consensus.correlation
 
 # Boxplots of logCPM values before and after normalization
+pdf("normalization_boxplots.pdf", height = 8.5, width = 11)
 par(mfrow=c(1,2))
+
 boxplot(logCPM, las=2, col=col, main="")
 title(main="A. Unnormalised data",ylab="Log-cpm")
+
 boxplot(voomLogCPM$E, las=2, col=col, main="")
 title(main="B. Normalised data",ylab="Log-cpm")
+
+dev.off()
 
 # Fitting linear models in limma ------------------------------------------
 
@@ -182,7 +206,7 @@ voomLogCPM$E %>%
 
 # Create DEG tibble
 DEGs <- fit %>%
-  contrasts.fit(coef = 2) %>% # Change for different models (2,3,4)
+  contrasts.fit(coef = 4) %>% # Change for different models (2,3,4)
   eBayes() %>%
   topTable(sort.by = "P", n = Inf) %>%
   rownames_to_column() %>% 
@@ -251,18 +275,18 @@ heatmap.2(heatMatrix,
 
 dev.off()
 
-# MD plot
-
-dt <- fit %>% decideTests() %>% summary()
-
-pdf("MDplot.pdf", height = 8.5, width = 11)
-
-plotMD(fit,
-       column = 2,
-       status = dt[,2],
-       main = colnames(fit)[2])
-
-dev.off()
+# # MD plot
+# 
+# dt <- fit %>% decideTests() %>% summary()
+# 
+# pdf("MDplot.pdf", height = 8.5, width = 11)
+# 
+# plotMD(fit,
+#        column = 2,
+#        status = dt[,2],
+#        main = colnames(fit)[2])
+# 
+# dev.off()
 
 # Ontologies and Pathways -------------------------------------------------
 

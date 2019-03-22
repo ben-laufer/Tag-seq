@@ -14,8 +14,8 @@ options(scipen=999)
 
 if (!requireNamespace("BiocManager", quietly=TRUE))
   install.packages("BiocManager")
-#BiocManager::install(c("edgeR", "tidyverse", "stephenturner/annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "rstudio/gt", "plyr", "glue", "Glimma"))
-stopifnot(suppressMessages(sapply(c("edgeR", "tidyverse", "annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "gt", "plyr", "glue", "Glimma"),
+#BiocManager::install(c("edgeR", "tidyverse", "stephenturner/annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "rstudio/gt", "plyr", "glue", "Glimma", "sva"))
+stopifnot(suppressMessages(sapply(c("edgeR", "tidyverse", "annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "gt", "plyr", "glue", "Glimma", "sva"),
                                   require, character.only = TRUE)))
 
 # Count Matrix ------------------------------------------------------------
@@ -152,7 +152,7 @@ Glimma::glMDSPlot(countMatrix,
                   path = getwd(),
                   folder = "interactiveMDS",
                   html = "MDS-Plot",
-                  launch = TRUE)
+                  launch = FALSE)
 
 # # MDS of all interactions
 # group <- interaction(designMatrix$Treatment, designMatrix$Sex)
@@ -165,19 +165,45 @@ plotMDS(countMatrix,
         main = "Treatment MDS")
 dev.off()
 
+# Surrogate variables analysis --------------------------------------------
+
+# Create model matrices, with null model for svaseq, and don't force a zero intercept
+mm <- model.matrix(~Treatment + Sex,
+                   data = designMatrix)
+
+mm0 <- model.matrix(~1 + Sex,
+                    data = designMatrix)
+
+# svaseq requires normalized data that isn't log transformed
+cpm <- cpm(countMatrix, log = FALSE)
+
+# Calculate number of surrogate variables
+# nSv <- num.sv(voomLogCPM$E,
+#               mm,
+#               method = "leek") 
+
+# Estimate surrogate variables
+svObj <- svaseq(cpm,
+                mm,
+                mm0) #,
+                #n.sv = nSv)
+
+# Update model to include surrogate variables
+mm <- model.matrix(~Treatment + Sex + svObj$sv,
+                   data = designMatrix)
+
 # Voom transformation and calculation of variance weights -----------------
 
-# Create model matrix
-#mm <- model.matrix(~0 + designMatrix$Treatment + designMatrix$Sex) # Force zero intercept? No!
-mm <- model.matrix(~Treatment + Sex, data = designMatrix)
-
-# Voom transformation
 pdf("voom_mean-variance_trend.pdf", height = 8.5, width = 11)
-voomLogCPM <- voom(countMatrix, mm, plot = T)
+voomLogCPM <- voom(countMatrix,
+                   mm,
+                   plot = T)
 dev.off()
 
 # Make litter a random effect
-correlations <- duplicateCorrelation(voomLogCPM, mm, block = designMatrix$Litter)
+correlations <- duplicateCorrelation(voomLogCPM,
+                                     mm,
+                                     block = designMatrix$Litter)
 
 # Extract intraclass correlation within litters
 correlations <- correlations$consensus.correlation
@@ -186,18 +212,22 @@ correlations <- correlations$consensus.correlation
 pdf("normalization_boxplots.pdf", height = 8.5, width = 11)
 par(mfrow=c(1,2))
 
-boxplot(logCPM, las=2, col=col, main="")
-title(main="A. Unnormalised data",ylab="Log-cpm")
+boxplot(logCPM, las = 2, col = col, main = "")
+title(main = "A. Unnormalised data", ylab = "Log-cpm")
 
-boxplot(voomLogCPM$E, las=2, col=col, main="")
-title(main="B. Normalised data",ylab="Log-cpm")
+boxplot(voomLogCPM$E, las = 2, col = col, main = "")
+title(main = "B. Normalised data", ylab = "Log-cpm")
 
 dev.off()
 
 # Fitting linear models in limma ------------------------------------------
 
 # Wieght standard errors of log fold changes by within litter correlation 
-fit <- lmFit(voomLogCPM, mm, correlation = correlations, block = designMatrix$Litter)
+fit <- lmFit(voomLogCPM,
+             mm,
+             correlation = correlations,
+             block = designMatrix$Litter)
+
 head(coef(fit))
 
 # Save normalized expression values for WGCNA
@@ -246,7 +276,19 @@ DEGs %>%
 
 # Heatmap
 
-heatMatrix <- voomLogCPM$E[which(rownames(voomLogCPM$E) %in% DEGs$ensembl),]
+heatSamples <- designMatrix %>%
+  dplyr::filter(Treatment == c("0", "6")) %>%
+  dplyr::select(Name) %>%
+  purrr::flatten_chr()
+
+heatDesign <- designMatrix %>%
+  dplyr::filter(Treatment == c("0", "6"))
+
+heatMatrix <- voomLogCPM$E[which(rownames(voomLogCPM$E) %in% DEGs$ensembl),] %>%
+  dplyr::as_tibble() %>%
+  dplyr::select(one_of(heatSamples)) %>%
+  as.matrix() # %>%
+  #sweep(., 1, rowMeans(.))
 
 # https://stackoverflow.com/questions/8197559/emulate-ggplot2-default-color-palette
 gg_color_hue <- function(n = n){
@@ -254,21 +296,22 @@ gg_color_hue <- function(n = n){
   hcl(h = hues, l = 65, c = 100)[1:n]
 }
 
-gg_color <- c(gg_color_hue(length(levels(as.factor(designMatrix$Treatment)))))
+gg_color <- c(gg_color_hue(length(levels(as.factor(heatDesign$Treatment)))))
 
-ColSideColors <- plyr::mapvalues(as.factor(designMatrix$Treatment),
-                                 from = levels(as.factor(designMatrix$Treatment)),
+ColSideColors <- plyr::mapvalues(as.factor(heatDesign$Treatment),
+                                 from = levels(as.factor(heatDesign$Treatment)),
                                  to = unique(gg_color)) 
 
 pdf("heatmap.pdf", height = 8.5, width = 11)
 
 heatmap.2(heatMatrix,
           scale = "row",
-          labCol = designMatrix$Treatment,
+          labCol = heatDesign$Treatment,
           labRow = NA,
           col = rev(brewer.pal(11, name = "RdBu")),
           trace = "none",
           main = glue::glue("{nrow(DEGs)} Differentially Expressed Genes"),
+          #key.xlab = "Z-score (log(cpm) - mean)",
           Rowv= as.dendrogram(hclust(dist(heatMatrix))),
           Colv = T,
           ColSideColors = as.character(ColSideColors))

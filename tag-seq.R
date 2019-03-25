@@ -167,33 +167,38 @@ dev.off()
 
 # Surrogate variables analysis --------------------------------------------
 
-# Create model matrices, with null model for svaseq, and don't force a zero intercept
-mm <- model.matrix(~Treatment + Sex,
-                   data = designMatrix)
-
-mm0 <- model.matrix(~1 + Sex,
-                    data = designMatrix)
-
-# svaseq requires normalized data that isn't log transformed
-cpm <- cpm(countMatrix, log = FALSE)
-
-# Calculate number of surrogate variables
-# nSv <- num.sv(voomLogCPM$E,
+# # Create model matrices, with null model for svaseq, and don't force a zero intercept
+# mm <- model.matrix(~Treatment + Sex + Litter,
+#                    data = designMatrix)
+# 
+# mm0 <- model.matrix(~1 + Sex + Litter,
+#                     data = designMatrix)
+# 
+# # svaseq requires normalized data that isn't log transformed
+# cpm <- cpm(countMatrix, log = FALSE)
+# 
+# # Calculate number of surrogate variables
+# nSv <- num.sv(cpm,
 #               mm,
-#               method = "leek") 
-
-# Estimate surrogate variables
-svObj <- svaseq(cpm,
-                mm,
-                mm0) #,
-                #n.sv = nSv)
-
-# Update model to include surrogate variables
-mm <- model.matrix(~Treatment + Sex + svObj$sv,
-                   data = designMatrix)
+#               method = "leek")
+# 
+# # Estimate surrogate variables
+# svObj <- svaseq(cpm,
+#                 mm,
+#                 mm0,
+#                 n.sv = nSv)
+# 
+# # Update model to include surrogate variables
+# mm <- model.matrix(~Treatment + Sex + svObj$sv,
+#                    data = designMatrix)
 
 # Voom transformation and calculation of variance weights -----------------
 
+# Design
+mm <- model.matrix(~Treatment + Sex,
+                   data = designMatrix)
+
+# Voom
 pdf("voom_mean-variance_trend.pdf", height = 8.5, width = 11)
 voomLogCPM <- voom(countMatrix,
                    mm,

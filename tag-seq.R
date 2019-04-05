@@ -2,7 +2,6 @@
 
 #References:
 #https://ucdavis-bioinformatics-training.github.io/2018-June-RNA-Seq-Workshop/thursday/DE.html
-#https://www.bioconductor.org/packages/release/bioc/vignettes/biobroom/inst/doc/biobroom_vignette.html
 #https://www.bioconductor.org/packages/devel/workflows/vignettes/RNAseq123/inst/doc/limmaWorkflow.html
 
 # Load packages -----------------------------------------------------------
@@ -14,8 +13,8 @@ options(scipen=999)
 
 if (!requireNamespace("BiocManager", quietly=TRUE))
   install.packages("BiocManager")
-#BiocManager::install(c("edgeR", "tidyverse", "stephenturner/annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "rstudio/gt", "plyr", "glue", "Glimma", "sva"))
-stopifnot(suppressMessages(sapply(c("edgeR", "tidyverse", "annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "gt", "plyr", "glue", "Glimma", "sva"),
+#BiocManager::install(c("edgeR", "tidyverse", "stephenturner/annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "rstudio/gt", "plyr", "glue", "Glimma", "sva", "clusterProfiler"))
+stopifnot(suppressMessages(sapply(c("edgeR", "tidyverse", "annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "gt", "plyr", "glue", "Glimma", "sva", "clusterProfiler"),
                                   require, character.only = TRUE)))
 
 # Count Matrix ------------------------------------------------------------
@@ -30,7 +29,7 @@ stopifnot(suppressMessages(sapply(c("edgeR", "tidyverse", "annotables", "gplots"
 
 sampleNames <- list.files(path = glue::glue(getwd(), "/GeneCounts"), pattern = "*.ReadsPerGene.out.tab") %>%
   stringr::str_split_fixed("_", n = 4) %>%
-  as_tibble() %>%
+  tibble::as_tibble() %>%
   tidyr::unite(Name, c(V1:V3), sep = "_") %>%
   dplyr::select(Name) %>% 
   purrr::flatten_chr()
@@ -50,7 +49,7 @@ countMatrix <- countMatrix[-c(1:4),]
 # Design Matrix -----------------------------------------------------------
 
 designMatrix <- read.csv("sample_info.csv") %>%
-  as_tibble()
+  tibble::as_tibble()
 
 # Tidy
 designMatrix$Name <- gsub("-", "_", designMatrix$Name)
@@ -127,7 +126,8 @@ legend("topright", designMatrix$Name, text.col = col, bty = "n", cex = 0.5)
 rawCount <- dim(countMatrix)
 
 keep.exprs <- filterByExpr(countMatrix, group = countMatrix$samples$group, lib.size = countMatrix$samples$lib.size)
-countMatrix <- countMatrix[keep.exprs,, keep.lib.sizes = FALSE] %>% calcNormFactors() 
+countMatrix <- countMatrix[keep.exprs,, keep.lib.sizes = FALSE] %>%
+  calcNormFactors() 
 
 filterCount <- dim(countMatrix)
 
@@ -205,7 +205,7 @@ voomLogCPM <- voom(countMatrix,
                    plot = T)
 dev.off()
 
-# Make litter a random effect
+# Make litter a random effect, since limma warns "coefficients not estimable" for some litters
 correlations <- duplicateCorrelation(voomLogCPM,
                                      mm,
                                      block = designMatrix$Litter)
@@ -239,118 +239,136 @@ head(coef(fit))
 voomLogCPM$E %>%
   write.xlsx("voomLogCPMforWGCNA.xlsx")
 
-# Create DEG tibble
-DEGs <- fit %>%
-  contrasts.fit(coef = 4) %>% # Change for different models (2,3,4)
-  eBayes() %>%
-  topTable(sort.by = "P", n = Inf) %>%
-  rownames_to_column() %>% 
-  as_tibble() %>%
-  dplyr::rename(ensembl = rowname) %>% 
-  dplyr::inner_join(grcm38, by = c("ensembl" = "ensgene")) %>% 
-  dplyr::select(symbol, logFC, P.Value, adj.P.Val, ensembl, description) %>%
-  dplyr::filter(P.Value < 0.05)
+
+# Split by contrast -------------------------------------------------------
+
+for (i in 2:4){
+  name = case_when(i == 2 ~ 0.1,
+                   i == 3 ~ 1,
+                   i == 4 ~ 6)
   
-# HTML report -------------------------------------------------------------
-
-DEGs %>%
-  dplyr::rename(Gene = symbol,
-                "p-value" = P.Value,
-                "q-value" = adj.P.Val,
-                Description = description) %>% 
-  dplyr::select(-ensembl) %>%
-  dplyr::mutate(Description = purrr::map_chr(strsplit(DEGs$description, split='[', fixed=TRUE),function(x) (x[1]))) %>% 
-  gt() %>%
-  tab_header(
-    title = glue::glue("{nrow(DEGs)} Differentially Expressed Genes"),
-    subtitle = glue::glue("{round(sum(DEGs$logFC > 0) / nrow(DEGs), digits = 2)*100}% up-regulated, \\
-                          {round(sum(DEGs$logFC < 0) / nrow(DEGs), digits = 2)*100}% down-regulated")
+  # Create DEG tibble -------------------------------------------------------
+  
+  print(glue::glue("Creating DEG list for contrast of group {name}"))
+  
+  DEGs <- fit %>%
+    contrasts.fit(coef = i) %>% # Change for different models (2,3,4)
+    eBayes() %>%
+    topTable(sort.by = "P", n = Inf) %>%
+    rownames_to_column() %>% 
+    tibble::as_tibble() %>%
+    dplyr::rename(ensembl = rowname) %>% 
+    dplyr::inner_join(grcm38, by = c("ensembl" = "ensgene")) %>% 
+    dplyr::select(symbol, logFC, P.Value, adj.P.Val, ensembl, description) %>%
+    dplyr::filter(P.Value < 0.05)
+  
+  # HTML report -------------------------------------------------------------
+  
+  print(glue::glue("Saving html report for contrast of group {name}"))
+  
+  DEGs %>%
+    dplyr::rename(Gene = symbol,
+                  "p-value" = P.Value,
+                  "q-value" = adj.P.Val,
+                  Description = description) %>% 
+    dplyr::select(-ensembl) %>%
+    dplyr::mutate(Description = purrr::map_chr(strsplit(DEGs$description, split='[', fixed=TRUE),function(x) (x[1]))) %>% 
+    gt() %>%
+    tab_header(
+      title = glue::glue("{nrow(DEGs)} Differentially Expressed Genes"),
+      subtitle = glue::glue("{round(sum(DEGs$logFC > 0) / nrow(DEGs), digits = 2)*100}% up-regulated, \\
+                            {round(sum(DEGs$logFC < 0) / nrow(DEGs), digits = 2)*100}% down-regulated")
+      ) %>% 
+    fmt_number(
+      columns = vars("logFC"),
+      decimals = 2
     ) %>% 
-  fmt_number(
-    columns = vars("logFC"),
-    decimals = 2
-  ) %>% 
-  fmt_scientific(
-    columns = vars("p-value", "q-value"),
-    decimals = 2
-  ) %>%
-  as_raw_html(inline_css = TRUE) %>%
-  write("DEGs.html") 
-
-# Plots -------------------------------------------------------------------
-
-# Heatmap
-
-heatSamples <- designMatrix %>%
-  dplyr::filter(Treatment == c("0", "6")) %>%
-  dplyr::select(Name) %>%
-  purrr::flatten_chr()
-
-heatDesign <- designMatrix %>%
-  dplyr::filter(Treatment == c("0", "6"))
-
-heatMatrix <- voomLogCPM$E[which(rownames(voomLogCPM$E) %in% DEGs$ensembl),] %>%
-  dplyr::as_tibble() %>%
-  dplyr::select(one_of(heatSamples)) %>%
-  as.matrix() # %>%
+    fmt_scientific(
+      columns = vars("p-value", "q-value"),
+      decimals = 2
+    ) %>%
+    as_raw_html(inline_css = TRUE) %>%
+    write(glue::glue("{name}_DEGs.html")) 
+  
+  # Plots -------------------------------------------------------------------
+  
+  # Heatmap
+  
+  print(glue::glue("Plotting heatmap for contrast of group {name}"))
+  
+  heatSamples <- designMatrix %>%
+    dplyr::filter(Treatment == c("0", name)) %>%
+    dplyr::select(Name) %>%
+    purrr::flatten_chr()
+  
+  heatDesign <- designMatrix %>%
+    dplyr::filter(Treatment == c("0", name))
+  
+  heatMatrix <- voomLogCPM$E[which(rownames(voomLogCPM$E) %in% DEGs$ensembl),] %>%
+    tibble::as_tibble() %>%
+    dplyr::select(one_of(heatSamples)) %>%
+    as.matrix() # %>%
   #sweep(., 1, rowMeans(.))
-
-# https://stackoverflow.com/questions/8197559/emulate-ggplot2-default-color-palette
-gg_color_hue <- function(n = n){
-  hues = seq(15, 375, length = n + 1)
-  hcl(h = hues, l = 65, c = 100)[1:n]
+  
+  # https://stackoverflow.com/questions/8197559/emulate-ggplot2-default-color-palette
+  gg_color_hue <- function(n = n){
+    hues = seq(15, 375, length = n + 1)
+    hcl(h = hues, l = 65, c = 100)[1:n]
+  }
+  
+  gg_color <- c(gg_color_hue(length(levels(as.factor(heatDesign$Treatment)))))
+  
+  ColSideColors <- plyr::mapvalues(as.factor(heatDesign$Treatment),
+                                   from = levels(as.factor(heatDesign$Treatment)),
+                                   to = unique(gg_color)) 
+  
+  pdf(glue::glue("{name}_heatmap.pdf"), height = 8.5, width = 11)
+  
+  heatmap.2(heatMatrix,
+            scale = "row",
+            labCol = heatDesign$Treatment,
+            labRow = NA,
+            col = rev(brewer.pal(11, name = "RdBu")),
+            trace = "none",
+            main = glue::glue("{nrow(DEGs)} Differentially Expressed Genes"),
+            #key.xlab = "Z-score (log(cpm) - mean)",
+            Rowv= as.dendrogram(hclust(dist(heatMatrix))),
+            Colv = T,
+            ColSideColors = as.character(ColSideColors))
+  
+  dev.off()
+  
+  # # MD plot
+  # 
+  # dt <- fit %>% decideTests() %>% summary()
+  # 
+  # pdf("MDplot.pdf", height = 8.5, width = 11)
+  # 
+  # plotMD(fit,
+  #        column = 2,
+  #        status = dt[,2],
+  #        main = colnames(fit)[2])
+  # 
+  # dev.off()
+  
+  # Ontologies and Pathways -------------------------------------------------
+  
+  print(glue::glue("Performing GO and pathway analysis for contrast of group {name}"))
+  
+  # Check available databases
+  #dbs <- listEnrichrDbs()
+  dbs <- c("GO_Biological_Process_2018",
+           "GO_Cellular_Component_2018",
+           "GO_Molecular_Function_2018",
+           "KEGG_2016",
+           "Panther_2016",
+           "Reactome_2016",
+           "RNA-Seq_Disease_Gene_and_Drug_Signatures_from_GEO")
+  
+  GO <- DEGs %>%
+    dplyr::select(symbol) %>%
+    purrr::flatten() %>%
+    enrichr(dbs)
+  
+  write.xlsx(GO, file = glue::glue("{name}_enrichr.xlsx"), sep="")
 }
-
-gg_color <- c(gg_color_hue(length(levels(as.factor(heatDesign$Treatment)))))
-
-ColSideColors <- plyr::mapvalues(as.factor(heatDesign$Treatment),
-                                 from = levels(as.factor(heatDesign$Treatment)),
-                                 to = unique(gg_color)) 
-
-pdf("heatmap.pdf", height = 8.5, width = 11)
-
-heatmap.2(heatMatrix,
-          scale = "row",
-          labCol = heatDesign$Treatment,
-          labRow = NA,
-          col = rev(brewer.pal(11, name = "RdBu")),
-          trace = "none",
-          main = glue::glue("{nrow(DEGs)} Differentially Expressed Genes"),
-          #key.xlab = "Z-score (log(cpm) - mean)",
-          Rowv= as.dendrogram(hclust(dist(heatMatrix))),
-          Colv = T,
-          ColSideColors = as.character(ColSideColors))
-
-dev.off()
-
-# # MD plot
-# 
-# dt <- fit %>% decideTests() %>% summary()
-# 
-# pdf("MDplot.pdf", height = 8.5, width = 11)
-# 
-# plotMD(fit,
-#        column = 2,
-#        status = dt[,2],
-#        main = colnames(fit)[2])
-# 
-# dev.off()
-
-# Ontologies and Pathways -------------------------------------------------
-
-# Check available databases
-#dbs <- listEnrichrDbs()
-dbs <- c("GO_Biological_Process_2018",
-         "GO_Cellular_Component_2018",
-         "GO_Molecular_Function_2018",
-         "KEGG_2016",
-         "Panther_2016",
-         "Reactome_2016",
-         "RNA-Seq_Disease_Gene_and_Drug_Signatures_from_GEO")
-
-GO <- DEGs %>%
-  dplyr::select(symbol) %>%
-  purrr::flatten() %>%
-  enrichr(dbs)
-
-write.xlsx(GO, file = "enrichr.xlsx", sep="")

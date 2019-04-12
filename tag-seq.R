@@ -409,14 +409,16 @@ for(tissue in 1:2){
       dplyr::mutate(Term = stringr::str_replace(.$Term, "_.*", "")) %>%
       dplyr::mutate(Term = stringr::str_trim(.$Term)) %>%
       dplyr::mutate(Term = stringr::str_to_title(.$Term)) %>%
-      dplyr::mutate(Term = factor(.$Term, levels = .$Term[order(rev(.$Database), .$`-log10.p-value`)])) %>% 
-      ggplot(aes(x = Term, y = `-log10.p-value`, fill = Database)) +
-      geom_bar(stat = "identity") + coord_flip() +
+      dplyr::mutate(Database = factor(.$Database)) %>% 
+      dplyr::mutate(Term = factor(.$Term, levels = unique(.$Term[order(forcats::fct_rev(.$Database), .$`-log10.p-value`)]))) %>% 
+      ggplot2::ggplot(aes(x = Term, y = `-log10.p-value`, fill = Database, group = Database)) +
+      geom_bar(stat = "identity", position = position_dodge(), color = "Black") +
+      coord_flip() +
       theme(axis.text = element_text(size = 12),
             axis.title = element_text(size = 12),
             strip.text = element_text(size = 12)) +
       scale_y_continuous(expand = c(0, 0)) +
-      labs(y=expression("-log"[10](p))) +
+      labs(y = expression("-log"[10](p))) +
       theme(axis.title.y = element_blank())
     
     ggsave(glue::glue("{tissueName}_{doseName}_enrichr_plot.pdf"),

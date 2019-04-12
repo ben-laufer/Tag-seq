@@ -13,8 +13,8 @@ options(scipen=999)
 
 if (!requireNamespace("BiocManager", quietly=TRUE))
   install.packages("BiocManager")
-#BiocManager::install(c("edgeR", "tidyverse", "stephenturner/annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "rstudio/gt", "plyr", "glue", "Glimma", "sva", "clusterProfiler"))
-stopifnot(suppressMessages(sapply(c("edgeR", "tidyverse", "annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "gt", "plyr", "glue", "Glimma", "sva", "clusterProfiler"),
+#BiocManager::install(c("edgeR", "tidyverse", "stephenturner/annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "rstudio/gt", "plyr", "glue", "Glimma", "sva", "cowplot"))
+stopifnot(suppressMessages(sapply(c("edgeR", "tidyverse", "annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "gt", "plyr", "glue", "Glimma", "sva", "cowplot"),
                                   require, character.only = TRUE)))
 
 for(tissue in 1:2){
@@ -381,6 +381,49 @@ for(tissue in 1:2){
       purrr::flatten() %>%
       enrichr(dbs)
     
-    write.xlsx(GO, file = glue::glue("{tissueName}_{doseName}_enrichr.xlsx"), sep="")
+    write.xlsx(GO, file = glue::glue("{tissueName}_{doseName}_enrichr.xlsx"), sep = "")
+    
+    # Plot
+    GOplot <- rbind(GO$GO_Biological_Process_2018[c(1:5),],
+                    GO$GO_Cellular_Component_2018[c(1:5),],
+                    GO$GO_Molecular_Function_2018[c(1:5),],
+                    GO$KEGG_2016[c(1:5),]) %>%
+      dplyr::as_tibble() %>%
+      cbind(
+        dplyr::as_tibble(
+          c(
+            rep("Biological Process", 5),
+            rep("Cellular Component", 5),
+            rep("Molecular Function", 5),
+            rep("KEGG", 5)
+          )
+        )
+      ) %>%
+      dplyr::select(Term, P.value, value, Combined.Score) %>%
+      dplyr::filter(P.value <= 0.05) %>%
+      dplyr::mutate(P.value = -log10(P.value)) %>%
+      dplyr::rename(`-log10.p-value` = P.value) %>%
+      dplyr::rename(Database = value) %>% 
+      dplyr::mutate(Database = stringr::str_replace(.$Database, "KEGG", "Pathway (KEGG)")) %>% 
+      dplyr::mutate(Term = stringr::str_replace(.$Term, "\\(.*", "")) %>%
+      dplyr::mutate(Term = stringr::str_replace(.$Term, "_.*", "")) %>%
+      dplyr::mutate(Term = stringr::str_trim(.$Term)) %>%
+      dplyr::mutate(Term = stringr::str_to_title(.$Term)) %>%
+      dplyr::mutate(Term = factor(.$Term, levels = .$Term[order(rev(.$Database), .$`-log10.p-value`)])) %>% 
+      ggplot(aes(x = Term, y = `-log10.p-value`, fill = Database)) +
+      geom_bar(stat = "identity") + coord_flip() +
+      theme(axis.text = element_text(size = 12),
+            axis.title = element_text(size = 12),
+            strip.text = element_text(size = 12)) +
+      scale_y_continuous(expand = c(0, 0)) +
+      labs(y=expression("-log"[10](p))) +
+      theme(axis.title.y = element_blank())
+    
+    ggsave(glue::glue("{tissueName}_{doseName}_enrichr_plot.pdf"),
+           plot = GOplot,
+           device = NULL,
+           height = 8.5,
+           width = 12)
+
   }
 }

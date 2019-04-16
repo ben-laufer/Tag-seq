@@ -13,8 +13,8 @@ options(scipen=999)
 
 if (!requireNamespace("BiocManager", quietly=TRUE))
   install.packages("BiocManager")
-#BiocManager::install(c("edgeR", "tidyverse", "stephenturner/annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "rstudio/gt", "plyr", "glue", "Glimma", "sva", "cowplot"))
-stopifnot(suppressMessages(sapply(c("edgeR", "tidyverse", "annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "gt", "plyr", "glue", "Glimma", "sva", "cowplot"),
+#BiocManager::install(c("edgeR", "tidyverse", "stephenturner/annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "rstudio/gt", "plyr", "glue", "Glimma", "sva"))
+stopifnot(suppressMessages(sapply(c("edgeR", "tidyverse", "annotables", "gplots", "RColorBrewer", "enrichR", "openxlsx", "gt", "plyr", "glue", "Glimma", "sva"),
                                   require, character.only = TRUE)))
 
 for(tissue in 1:2){
@@ -414,12 +414,11 @@ for(tissue in 1:2){
       ggplot2::ggplot(aes(x = Term, y = `-log10.p-value`, fill = Database, group = Database)) +
       geom_bar(stat = "identity", position = position_dodge(), color = "Black") +
       coord_flip() +
-      theme(axis.text = element_text(size = 12),
-            axis.title = element_text(size = 12),
-            strip.text = element_text(size = 12)) +
       scale_y_continuous(expand = c(0, 0)) +
       labs(y = expression("-log"[10](p))) +
-      theme(axis.title.y = element_blank())
+      theme_classic() +
+      theme(axis.text = element_text(size = 14),
+            axis.title.y = element_blank())
     
     ggsave(glue::glue("{tissueName}_{doseName}_enrichr_plot.pdf"),
            plot = GOplot,

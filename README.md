@@ -8,9 +8,9 @@ The Tag-seq pipeline takes you from raw fastq files to gene counts for samples p
 1. [Installation](https://github.com/ben-laufer/Tag-seq#installation)
 2. [Indexing](https://github.com/ben-laufer/Tag-seq#indexing)
 3. [Single End (SE) Sequencing](https://github.com/ben-laufer/Tag-seq#single-end-se-sequencing)
-   1. [Filtering](https://github.com/ben-laufer/CpG_Me#filtering)
-   2. [Alignment](https://github.com/ben-laufer/CpG_Me#alignment)
-4. [Quality Control](https://github.com/ben-laufer/Tag-seq#qaulity-control)
+   1. [Trimming](https://github.com/ben-laufer/Tag-seq#trimming)
+   2. [Alignment](https://github.com/ben-laufer/Tag-seq#alignment)
+4. [Quality Control](https://github.com/ben-laufer/Tag-seq#quality-control)
 4. [Statistical Analysis](https://github.com/ben-laufer/Tag-seq#statistical-analysis)
 6. [Citation](https://github.com/ben-laufer/Tag-seq#citation)
 7. [Acknowledgements](https://github.com/ben-laufer/Tag-seq#acknowledgements)
@@ -74,13 +74,13 @@ The script can be executed using the following command from the working director
 
 The `--array` argument represents which samples in the list to run. Here we are running samples 1 to 87. You could run select samples using the following format --array=2,4-12
 
-### Filtering
+### Trimming
 
-Filtering is performed to remove adapter contamination, polyA tail read through, and low quality tails. The random priming approach also biases the first 12 bp of sequence; however, this does not need to be manually trimmed if using a local aligner like STAR (read more [here](https://dnatech.genomecenter.ucdavis.edu/tag-seq-gene-expression-profiling/)).
+Trimming is performed to remove adapter contamination, polyA tail read through, and low quality tails. The random priming approach also biases the first 12 bp of sequence; however, this does not need to be manually trimmed if using a local aligner like STAR (read more [here](https://dnatech.genomecenter.ucdavis.edu/tag-seq-gene-expression-profiling/)).
 
 ### Alignment
 
-After filtering, alignment and the generation of gene counts are performed in a single step that is then followed by indexing of the BAM files.
+After trimming, alignment and the generation of gene counts are performed in a single step that is then followed by indexing of the BAM files.
 
 ## Quality Control
 

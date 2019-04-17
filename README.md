@@ -1,7 +1,7 @@
 # Tag-seq
-### A 3’ Tag RNA-seq pipeline for the alignment of gene expression data
+### A 3’ Tag RNA-seq repository for the alignment and statistical analysis of gene expression data
 
-The Tag-seq pipeline takes you from raw fastq files to gene counts for samples prepared using the QuantSeq 3' mRNA-Seq Library Prep Kit FWD for Illumina (Lexogen) and sequenced with single end reads. The scripts cover the indexing of the reference genome and gene annotations, filtering, alignment, extraction of gene counts, quality control. The gene count matrices can then be utilized for statistical analysis in R. 
+The Tag-seq repository consists of two main pipelines. The first pipeline, which utilizes Unix shell scripts, takes you from raw fastq files to gene counts matrices for samples prepared using the QuantSeq 3' mRNA-Seq Library Prep Kit FWD for Illumina (Lexogen) and sequenced with single end reads. These shell scripts handle the indexing of the reference genome and gene annotations, trimming, alignment, extraction of gene counts, and generate a quality control report. The second pipeline, which is an R script, takes the gene count matrices and performs preprocessing, normalization, differential gene expression (DGE) analyses, annotations, gene ontology and enrichment testing, and data visualization.
 
 ### Table of Contents
 
@@ -96,4 +96,4 @@ If you use **Tag-seq** in published research please cite this repository.
 
 ## Acknowledgements
 
-I would like to thank [Matt Settles](https://github.com/msettles) from the [UC Davis Bioinformatics Core](https://github.com/ucdavis-bioinformatics) for [examples of tidy code](https://github.com/ucdavis-bioinformatics-training/A-Primer-on-Using-the-Bioinformatics-Core-Administrated-Servers-and-Cluster-s-/tree/master/examples) and introducing me to the tidyverse. I would also like to thank Blythe Durbin-Johnson for statistical consulting and Annie Vogel Ciernia for invaluable discussions related to the bioinformatic and statistical approaches utilized in this repository. Finally, I would like to thank [Ian Korf](https://github.com/KorfLab) for discussions related to some of the bioinformatic approaches utilized in this repository. 
+ I would like to thank Blythe Durbin-Johnson for statistical consulting and Annie Vogel Ciernia for invaluable discussions related to the bioinformatic and statistical approaches utilized in this repository. I would also like to thank [Matt Settles](https://github.com/msettles) from the [UC Davis Bioinformatics Core](https://github.com/ucdavis-bioinformatics) for [examples of tidy code](https://github.com/ucdavis-bioinformatics-training/A-Primer-on-Using-the-Bioinformatics-Core-Administrated-Servers-and-Cluster-s-/tree/master/examples) and introducing me to the tidyverse. Finally, I would like to thank [Ian Korf](https://github.com/KorfLab) for discussions related to some of the bioinformatic approaches utilized in this repository. 

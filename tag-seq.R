@@ -217,6 +217,7 @@ for(tissue in 1:2){
   dev.off()
   
   # Make litter a random effect, since limma warns "coefficients not estimable" for some litters
+  # Ref: https://support.bioconductor.org/p/11956/
   correlations <- duplicateCorrelation(voomLogCPM,
                                        mm,
                                        block = designMatrix$Litter)
@@ -269,7 +270,7 @@ for(tissue in 1:2){
       rownames_to_column() %>% 
       tibble::as_tibble() %>%
       dplyr::rename(ensembl = rowname) %>% 
-      dplyr::inner_join(grcm38, by = c("ensembl" = "ensgene")) %>% 
+      dplyr::inner_join(annotables::grcm38, by = c("ensembl" = "ensgene")) %>% 
       dplyr::select(symbol, logFC, P.Value, adj.P.Val, ensembl, description) %>%
       dplyr::filter(P.Value < 0.05)
     

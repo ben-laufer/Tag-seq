@@ -316,13 +316,19 @@ for(tissue in 1:2){
       purrr::flatten_chr()
     
     heatDesign <- designMatrix %>%
-      dplyr::filter(Treatment == c("0", doseName))
+      dplyr::filter(Treatment == c("0", doseName)) %>%
+      dplyr::select(Treatment, Sex, Litter) %>%
+      as.data.frame()
     
     heatMatrix <- voomLogCPM$E[which(rownames(voomLogCPM$E) %in% DEGs$ensembl),] %>%
       tibble::as_tibble() %>%
       dplyr::select(one_of(heatSamples)) %>%
       as.matrix() # %>%
-    #sweep(., 1, rowMeans(.))
+      #sweep(., 1, rowMeans(.))
+    
+    ColSideColors <- matrix(nrow = nrow(heatDesign), ncol = ncol(heatDesign))
+    legendNames <- as.character()
+    legendColors <- as.character()
     
     # https://stackoverflow.com/questions/8197559/emulate-ggplot2-default-color-palette
     gg_color_hue <- function(n = n){
@@ -330,25 +336,42 @@ for(tissue in 1:2){
       hcl(h = hues, l = 65, c = 100)[1:n]
     }
     
-    gg_color <- c(gg_color_hue(length(levels(as.factor(heatDesign$Treatment)))))
-    
-    ColSideColors <- plyr::mapvalues(as.factor(heatDesign$Treatment),
-                                     from = levels(as.factor(heatDesign$Treatment)),
-                                     to = unique(gg_color)) 
+    for(i in 1:length(heatDesign)){
+      gg_color <- c(gg_color_hue(length(levels(heatDesign[,i]))))[heatDesign[,i]]
+      matrix  <- plyr::mapvalues(heatDesign[,i],
+                                 from = levels(droplevels(heatDesign[,i])),
+                                 to = unique(gg_color)) %>% 
+        as.matrix()
+      ColSideColors[,i] <- matrix 
+      legendNames <- c(legendNames, "", levels(droplevels(heatDesign[,i])))
+      legendColors <- c(legendColors, "white", unique(gg_color))
+    }
+    colnames(ColSideColors) <- names(heatDesign)
     
     pdf(glue::glue("{tissueName}_{doseName}_heatmap.pdf"), height = 8.5, width = 11)
+    source("https://raw.githubusercontent.com/obigriffith/biostar-tutorials/master/Heatmaps/heatmap.3.R")
     
-    heatmap.2(heatMatrix,
+    heatmap.3(heatMatrix,
               scale = "row",
-              labCol = heatDesign$Treatment,
               labRow = NA,
               col = rev(brewer.pal(11, name = "RdBu")),
               trace = "none",
               main = glue::glue("{nrow(DEGs)} Differentially Expressed Genes"),
-              #key.xlab = "Z-score (log(cpm) - mean)",
+              #KeyValueName = "Z-score of log(cpm)", # "Z-score (log(cpm) - mean)"
               Rowv= as.dendrogram(hclust(dist(heatMatrix))),
               Colv = T,
-              ColSideColors = as.character(ColSideColors))
+              ColSideColors = ColSideColors,
+              margins = c(10,10),
+              ColSideColorsSize = 2)
+    
+    par(lend = 1)
+    legend("topright",
+           legend = legendNames,
+           fill = legendColors,
+           border = FALSE,
+           bty = "n",
+           y.intersp = 0.7,
+           cex = 0.7)
     
     dev.off()
     

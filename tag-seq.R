@@ -249,6 +249,8 @@ for(tissue in 1:2){
   
   # Save normalized expression values for WGCNA
   voomLogCPM$E %>%
+    as.data.frame() %>% 
+    tibble::rownames_to_column(var = "Gene") %>%
     write.xlsx(glue::glue("{tissueName}_voomLogCPMforWGCNA.xlsx"))
   
   

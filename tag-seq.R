@@ -6,7 +6,7 @@
 
 # Load packages -----------------------------------------------------------
 
-setwd("/Users/blaufer/Desktop/PEBBLES/tag-seq")
+setwd("/Users/blaufer/Box Sync/PEBBLES")
 
 rm(list=ls())
 options(scipen=999)
@@ -218,6 +218,7 @@ for(tissue in 1:2){
   
   # Make litter a random effect, since limma warns "coefficients not estimable" for some litters
   # Ref: https://support.bioconductor.org/p/11956/
+  # Obstacle: Cannot do this properly with surrogtate variables, since there's an error when including litter in null model
   correlations <- duplicateCorrelation(voomLogCPM,
                                        mm,
                                        block = designMatrix$Litter)
@@ -263,12 +264,25 @@ for(tissue in 1:2){
     
     # Create DEG tibble -------------------------------------------------------
     
-    print(glue::glue("Creating DEG list of {tissueName} samples for {doseName} PCB dosage"))
+    print(glue::glue("Creating DEG list and Q-Q plot of {tissueName} samples for {doseName} mg/kg PCB dosage"))
     
     DEGs <- fit %>%
       contrasts.fit(coef = dose) %>% # Change for different models (2,3,4)
       eBayes() %>%
-      topTable(sort.by = "P", n = Inf) %>%
+      topTable(sort.by = "P", n = Inf)
+    
+    pdf(glue::glue("{tissueName}_{doseName}_qqplot.pdf"), height = 8.5, width = 11) 
+    DEGs$P.Value %>%
+      qqt(.,
+          df = Inf,
+          ylim = range(.),
+          main = glue::glue("{tissueName} {doseName}mg/kg Student's t Q-Q Plot"), 
+          xlab = "Theoretical Quantiles",
+          ylab = "Sample Quantiles",
+          plot.it = TRUE) 
+    dev.off()                  
+  
+    DEGs <- DEGs %>%
       rownames_to_column() %>% 
       tibble::as_tibble() %>%
       dplyr::rename(ensembl = rowname) %>% 
@@ -278,7 +292,7 @@ for(tissue in 1:2){
     
     # HTML report -------------------------------------------------------------
     
-    print(glue::glue("Saving html report of {tissueName} samples for {doseName} PCB dosage"))
+    print(glue::glue("Saving html report of {tissueName} samples for {doseName} mg/kg PCB dosage"))
     
     DEGs %>%
       dplyr::rename(Gene = symbol,
@@ -308,7 +322,7 @@ for(tissue in 1:2){
     
     # Heatmap
     
-    print(glue::glue("Plotting heatmap of {tissueName} samples for {doseName} PCB dosage"))
+    print(glue::glue("Plotting heatmap of {tissueName} samples for {doseName} mg/kg PCB dosage"))
     
     heatSamples <- designMatrix %>%
       dplyr::filter(Treatment == c("0", doseName)) %>%
@@ -390,7 +404,7 @@ for(tissue in 1:2){
     
     # Ontologies and Pathways -------------------------------------------------
     
-    print(glue::glue("Performing GO and pathway analysis of {tissueName} samples for {doseName} PCB dosage"))
+    print(glue::glue("Performing GO and pathway analysis of {tissueName} samples for {doseName} mg/kg PCB dosage"))
     
     # Check available databases
     #dbs <- listEnrichrDbs()

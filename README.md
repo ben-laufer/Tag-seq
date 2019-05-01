@@ -88,7 +88,9 @@ The `tag-seq-QC.sh` script is the final step in the process, which a generates a
 
 ## Statistical Analysis
 
-The `tag-seq.R` script is intended for the statistical analysis of the gene count matrices with the goal of identifying differentially expressed genes. It utilizes Limma-Voom and integrates two tutorials [1](https://ucdavis-bioinformatics-training.github.io/2018-June-RNA-Seq-Workshop/thursday/DE.html) and [2](https://www.bioconductor.org/packages/devel/workflows/vignettes/RNAseq123/inst/doc/limmaWorkflow.html). The script also offers additional custom functions related to statistical analysis, annotation, and data visualization. 
+The `tag-seq.R` script is intended for the statistical analysis of the gene count matrices with the goal of identifying differentially expressed genes. It utilizes Limma-Voom and integrates two tutorials (see [1](https://ucdavis-bioinformatics-training.github.io/2018-June-RNA-Seq-Workshop/thursday/DE.html) and [2](https://www.bioconductor.org/packages/devel/workflows/vignettes/RNAseq123/inst/doc/limmaWorkflow.html)). The script also offers additional custom functions related to statistical analysis, annotation, and data visualization. 
+
+In this linear model, sex is modeled as a fixed effect. Litter is modeled as a random effect for two reasons. The first reason is because limma warns "coefficients not estimable" for some litters when modeling them as a fixed effect. The second reason is due to the [nested design](https://support.bioconductor.org/p/11956/), where the treatment is applied to the dam but the effects are measured in multiple offspring from her litter. Additionally, surrogate variable analysis is not utilized, as it has been shown to exaggerate group differences in similar designs, where it was shown that using a blocking factor is a more statistically appropriate approach (read more in [1](https://www.ncbi.nlm.nih.gov/pubmed/26272994) and [2](https://www.ncbi.nlm.nih.gov/pubmed/27780809)).
 
 ## Citation
 

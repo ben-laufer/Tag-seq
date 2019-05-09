@@ -6,7 +6,7 @@
 
 # Load packages -----------------------------------------------------------
 
-setwd("/Users/blaufer/Box Sync/PEBBLES")
+setwd("/Users/blaufer/Box Sync/PEBBLES/tag-seq")
 
 rm(list=ls())
 options(scipen=999)
@@ -449,6 +449,7 @@ for(tissue in 1:2){
       dplyr::mutate(Term = stringr::str_replace(.$Term, "_.*", "")) %>%
       dplyr::mutate(Term = stringr::str_trim(.$Term)) %>%
       dplyr::mutate(Term = stringr::str_to_title(.$Term)) %>%
+      dplyr::mutate(Term = stringr::str_wrap(.$Term, 70)) %>% 
       dplyr::mutate(Database = factor(.$Database)) %>% 
       dplyr::mutate(Term = factor(.$Term, levels = unique(.$Term[order(forcats::fct_rev(.$Database), .$`-log10.p-value`)]))) %>% 
       ggplot2::ggplot(aes(x = Term, y = `-log10.p-value`, fill = Database, group = Database)) +

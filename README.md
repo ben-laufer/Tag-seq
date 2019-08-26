@@ -92,6 +92,8 @@ The `tag-seq.R` script is intended for the statistical analysis of the gene coun
 
 In this linear model, sex is modeled as a fixed effect. Litter is modeled as a random effect for two reasons. The first reason is because limma warns "coefficients not estimable" for some litters when modeling them as a fixed effect. The second reason is due to the [nested design](https://support.bioconductor.org/p/11956/), where the treatment is applied to the dam but the effects are measured in multiple offspring from her litter. Additionally, surrogate variable analysis is not utilized, as it has been shown to exaggerate group differences in similar designs, where it was shown that using a blocking factor is a more statistically appropriate approach (read more in [1](https://www.ncbi.nlm.nih.gov/pubmed/26272994) and [2](https://www.ncbi.nlm.nih.gov/pubmed/27780809)).
 
+There is also a rough version of a weighted gene co-expression network analysis (WGCNA) script that I've modified from the [tutorials](https://horvath.genetics.ucla.edu/html/CoexpressionNetwork/Rpackages/WGCNA/Tutorials/index.html) and used for a few DNA methylation and gene expression projects, however, it isn't yet complete in terms of automation, error checking, and minor bugs. Furthermore, it appears that WGCNA is not appropriate for modelling non-monotonic responses and there are [not enough samples](https://horvath.genetics.ucla.edu/html/CoexpressionNetwork/Rpackages/WGCNA/faq.html) to analyze each dose individually in this project.
+
 ## Citation
 
 If you use **Tag-seq** in published research please cite this repository.

@@ -31,14 +31,13 @@ suppressWarnings(BiocManager::valid(fix = TRUE, update = TRUE, ask = FALSE))
 
 # Global variables --------------------------------------------------------
 
-setwd("/Users/blaufer/Box Sync/PEBBLES/tag-seq")
-cores <- 6
-
+cores <- 30
 # WGCNA specific options
 options(stringsAsFactors = FALSE)
-ALLOW_WGCNA_THREADS=cores
+enableWGCNAThreads(cores)
 
 ## WGCNA 1: Data input and cleaning ----
+setwd("/Users/blaufer/Box Sync/PEBBLES/tag-seq")
 
 logCPM <- openxlsx::read.xlsx("Placenta_voomLogCPMforWGCNA.xlsx")
 #logCPM <- openxlsx::read.xlsx("Brain_voomLogCPMforWGCNA.xlsx") 
@@ -156,9 +155,9 @@ dev.off()
 ## WGCNA 2: Automatic, one-step network construction and module detection ----
 
 # Choose a set of soft-thresholding powers
-powers = c(c(1:10), seq(from = 12, to=20, by=2))
+powers = c(c(1:10), seq(from = 12, to=30, by=2))
 # Call the network topology analysis function
-sft = pickSoftThreshold(WGCNA_data, powerVector = powers, verbose = 5)
+sft = pickSoftThreshold(WGCNA_data, powerVector = powers, corFnc = "bicor", networkType = "signed", verbose = 5)
 
 pdf("soft_thresholding_power.pdf", height = 5, width =9)
 # Plot the results:

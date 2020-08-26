@@ -269,18 +269,7 @@ for(tissue in 1:2){
     DEGs <- fit %>%
       contrasts.fit(coef = dose) %>% # Change for different models (2,3,4)
       eBayes() %>%
-      topTable(sort.by = "P", n = Inf)
-    
-    pdf(glue::glue("{tissueName}_{doseName}_qqplot.pdf"), height = 8.5, width = 11) 
-    DEGs$P.Value %>%
-      qqt(.,
-          df = Inf,
-          ylim = range(.),
-          main = glue::glue("{tissueName} {doseName}mg/kg Student's t Q-Q Plot"), 
-          xlab = "Theoretical Quantiles",
-          ylab = "Sample Quantiles",
-          plot.it = TRUE) 
-    dev.off()                  
+      topTable(sort.by = "P", n = Inf)            
   
     DEGs <- DEGs %>%
       rownames_to_column() %>% 

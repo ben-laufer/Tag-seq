@@ -1,7 +1,9 @@
 # Tag-seq
 ### A 3’ Tag RNA-seq repository for the alignment and statistical analysis of gene expression data
 
-The Tag-seq repository consists of two main pipelines. The first pipeline, which utilizes Unix shell scripts, takes you from raw fastq files to gene counts matrices for samples prepared using the QuantSeq 3' mRNA-Seq Library Prep Kit FWD for Illumina (Lexogen) and sequenced with single end reads. These shell scripts handle the indexing of the reference genome and gene annotations, trimming, alignment, extraction of gene counts, and generate a quality control report. The second pipeline, which is an R script, takes the gene count matrices and performs preprocessing, normalization, differential gene expression (DGE) analyses, annotations, gene ontology and enrichment testing, and data visualization.
+The Tag-seq repository consists of two main pipelines, which are not yet finished. The first pipeline, which utilizes Unix shell scripts, takes you from raw fastq files to gene counts matrices for samples prepared using the QuantSeq 3' mRNA-Seq Library Prep Kit FWD for Illumina (Lexogen) and sequenced with single end reads. These shell scripts handle the indexing of the reference genome and gene annotations, trimming, alignment, extraction of gene counts, and generate a quality control report. The second pipeline, which is an R script, takes the gene count matrices and performs preprocessing, normalization, differential gene expression (DGE) analyses, annotations, gene ontology and enrichment testing, and data visualization.
+
+**Note:** This pipeline is based on old data without Unique Molecular Identifiers (UMIs), which are now becoming a standard for newer datasets. Please check if your data has them, since they require an extra step of processing that is not included in this repository. 
 
 ### Table of Contents
 

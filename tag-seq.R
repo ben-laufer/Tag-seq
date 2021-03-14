@@ -275,7 +275,7 @@ for(tissue in 1:2){
       rownames_to_column() %>% 
       tibble::as_tibble() %>%
       dplyr::rename(ensembl = rowname) %>% 
-      dplyr::inner_join(annotables::grcm38, by = c("ensembl" = "ensgene")) %>% 
+      dplyr::left_join(annotables::grcm38, by = c("ensembl" = "ensgene")) %>% 
       dplyr::select(symbol, logFC, P.Value, adj.P.Val, ensembl, description) %>%
       dplyr::filter(P.Value < 0.05)
     

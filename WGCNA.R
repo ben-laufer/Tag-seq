@@ -157,7 +157,7 @@ dev.off()
 # Choose a set of soft-thresholding powers
 powers = c(c(1:10), seq(from = 12, to=30, by=2))
 # Call the network topology analysis function
-sft = pickSoftThreshold(WGCNA_data, powerVector = powers, corFnc = "bicor", networkType = "signed", verbose = 5)
+sft = pickSoftThreshold(WGCNA_data, powerVector = powers, corFnc = "bicor", networkType = "unsigned", verbose = 5)
 
 pdf("soft_thresholding_power.pdf", height = 5, width =9)
 # Plot the results:
@@ -205,15 +205,11 @@ options(stringsAsFactors = FALSE)
 # https://labs.genetics.ucla.edu/horvath/CoexpressionNetwork/Rpackages/WGCNA/faq.html
 net = blockwiseModules(WGCNA_data,
                        power = 5, # Choose from above plot, the lowest power where the curve flattens out upon reaching a high value (~0.90) # 5 for placenta, 7 for Brain
-                       networkType = "signed", # signed is recommended
-                       TOMType = "signed", 
+                       networkType = "unsigned",
+                       TOMType = "unsigned", 
                        corType = "bicor", # More powerful than "pearson", https://www.ncbi.nlm.nih.gov/pubmed/23217028
                        maxPOutliers = 0.10, # Forces bicor to never regard more than the specified proportion of samples as outliers (https://horvath.genetics.ucla.edu/html/CoexpressionNetwork/Rpackages/WGCNA/faq.html)
-                       minModuleSize = 30, # 30 is default which was ~1% of regions in example 
-                       reassignThreshold = 0,
-                       mergeCutHeight = 0.25,
                        numericLabels = TRUE,
-                       pamRespectsDendro = FALSE,
                        saveTOMs = TRUE,
                        saveTOMFileBase = "regionTOM", 
                        blocks = NULL,
